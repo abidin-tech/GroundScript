@@ -2,6 +2,7 @@
 
 > **Write 80% less code. Build web apps, interfaces, and 2D games in minutes, not hours.**
 
+Access the editor here admirable-pothos-e45137.netlify.app
 GroundScript is a lightweight, zero-dependency Domain Specific Language (DSL) designed to eliminate boilerplate code. It translates human-readable `.gs` scripts directly into optimized, native HTML and JavaScript with sub-millisecond execution speeds.
 
 ---
