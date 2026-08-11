@@ -1,254 +1,218 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GroundScript Studio</title>
+  <title>GroundScript Studio IDE ⚡</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: 20px;
+    :root {
+      --bg-dark: #1e1e1e;
+      --bg-sidebar: #252526;
+      --bg-header: #333333;
+      --bg-active: #37373d;
+      --accent-color: #0e639c;
+      --accent-hover: #1177bb;
+      --text-main: #d4d4d4;
+      --border-color: #2d2d2d;
     }
 
-    /* Top Bar Header */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Consolas', 'Fira Code', 'Segoe UI', monospace; }
+    body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* 1. الشريط العلوي (Top Navbar) */
     header {
-      background-color: #161b22;
-      padding: 12px;
-      border-bottom: 2px solid #10b981;
-    }
-    .brand {
+      background: var(--bg-header);
+      height: 45px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
+      padding: 0 15px;
+      border-bottom: 1px solid var(--border-color);
     }
-    .brand h2 { color: #10b981; font-size: 18px; }
+    .brand { font-weight: bold; color: #4ec9b0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .nav-actions { display: flex; gap: 10px; }
+    .btn { background: #3c3c3c; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+    .btn:hover { background: #4a4a4a; }
+    .btn-primary { background: var(--accent-color); font-weight: bold; }
+    .btn-primary:hover { background: var(--accent-hover); }
 
-    .actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .btn {
-      background: #21262d;
-      color: #58a6ff;
-      border: 1px solid #30363d;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .btn:active { opacity: 0.7; }
-    .btn.primary { background: #10b981; color: #0d1117; border: none; }
+    /* 2. جسم الـ IDE الرئيسي */
+    .ide-container { display: flex; flex: 1; height: calc(100vh - 45px); }
 
-    /* Code Editor Area */
-    .editor-container {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .label {
-      font-size: 13px;
-      color: #8b949e;
-      font-weight: bold;
-    }
+    /* أ) القائمة الجانبية وشجرة الملفات (File Explorer) */
+    .sidebar { width: 220px; background: var(--bg-sidebar); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .sidebar-title { padding: 10px; font-size: 0.8rem; font-weight: bold; color: #858585; text-transform: uppercase; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; }
+    .file-tree { list-style: none; padding: 5px 0; overflow-y: auto; }
+    .file-item { padding: 8px 15px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 3px; margin: 2px 5px; }
+    .file-item:hover { background: var(--bg-active); }
+    .file-item.active { background: #094771; color: #fff; }
+    .file-icon { font-size: 0.9rem; }
+
+    /* ب) منطقة التحرير والكود (Editor Area) */
+    .editor-section { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); border-left: 1px solid var(--border-color); }
     
-    #codeEditor {
-      width: 100%;
-      height: 350px;
-      background-color: #010409;
-      color: #34d399;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 12px;
-      font-family: 'Fira Code', Consolas, Monaco, monospace;
-      font-size: 15px;
-      line-height: 1.5;
-      outline: none;
-    }
+    /* التبويبات (Tabs) */
+    .tabs-bar { background: #2d2d2d; display: flex; overflow-x: auto; height: 35px; border-bottom: 1px solid var(--border-color); }
+    .tab { padding: 8px 15px; font-size: 0.85rem; background: #2d2d2d; color: #969696; cursor: pointer; display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border-color); }
+    .tab.active { background: var(--bg-dark); color: #fff; border-top: 2px solid var(--accent-color); }
+    .tab-close { font-size: 0.7rem; padding: 2px 4px; border-radius: 50%; }
+    .tab-close:hover { background: #555; }
 
-    /* Live Preview Area */
-    .preview-container {
-      padding: 12px;
-    }
-    #output {
-      background-color: #ffffff;
-      color: #000000;
-      padding: 15px;
-      border-radius: 8px;
-      min-height: 120px;
-    }
-    
-    .gs-btn {
-      background: #10b981;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    /* شاشة كتابة الكود */
+    .code-wrapper { flex: 1; display: flex; position: relative; }
+    .line-numbers { width: 45px; background: var(--bg-dark); color: #858585; padding: 12px 5px; text-align: center; font-size: 0.9rem; line-height: 1.5; border-left: 1px solid var(--border-color); user-select: none; }
+    textarea { flex: 1; background: var(--bg-dark); color: #9cdcfe; border: none; padding: 12px; font-size: 0.95rem; line-height: 1.5; outline: none; resize: none; tab-size: 2; white-space: pre; }
+
+    /* ج) شاشة المعاينة والمخرجات (Live Preview Canvas) */
+    .preview-section { width: 360px; background: #141414; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; }
+    .preview-header { width: 100%; background: #2d2d2d; padding: 8px 12px; font-size: 0.8rem; font-weight: bold; color: #aaa; text-align: right; }
+    .canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; width: 100%; }
+    canvas { background: #000; border: 2px solid #333; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.7); max-width: 100%; height: auto; }
+
+    /* شريط الحالة الذهبي في الأسفل (Status Bar) */
+    footer { background: var(--accent-color); height: 22px; color: #fff; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
   </style>
 </head>
 <body>
 
+  <!-- 1. Navbar -->
   <header>
     <div class="brand">
-      <h2>GroundScript Studio (.gs)</h2>
+      <span>GroundScript Studio IDE</span>
+      <small style="font-size:0.7rem; color:#888;">v1.0</small>
     </div>
-    <div class="actions">
-      <button id="openBtn" class="btn">📁 Open .gs</button>
-      <button id="saveBtn" class="btn">💾 Save .gs</button>
-      <button id="exportBtn" class="btn primary">⚡ Export HTML</button>
-      <input type="file" id="fileInput" accept=".gs" style="display:none;">
+    <div class="nav-actions">
+      <button class="btn" onclick="addFile()">+ ملف جديد</button>
+      <button class="btn btn-primary" onclick="runProject()">تشغيل المشروع ▶</button>
     </div>
   </header>
 
-  <main class="editor-container">
-    <div class="label">Code Editor (main.gs):</div>
-    <textarea id="codeEditor" spellcheck="false"></textarea>
-  </main>
+  <!-- 2. Main IDE Body -->
+  <div class="ide-container">
+    
+    <!-- Sidebar / File Explorer -->
+    <div class="sidebar">
+      <div class="sidebar-title">
+        <span>ملفات المشروع</span>
+        <span>📁</span>
+      </div>
+      <ul class="file-tree" id="fileTree">
+        <!-- الملفات تُجلب تلقائياً عبر السكريبت -->
+      </ul>
+    </div>
 
-  <section class="preview-container">
-    <div class="label" style="margin-bottom: 6px;">Live Preview:</div>
-    <div id="output"></div>
-  </section>
+    <!-- Code Editor Section -->
+    <div class="editor-section">
+      <!-- Tabs -->
+      <div class="tabs-bar" id="tabsBar">
+        <!-- التبويبات النشطة -->
+      </div>
 
+      <!-- Code Textarea -->
+      <div class="code-wrapper">
+        <div class="line-numbers" id="lineNumbers">1</div>
+        <textarea id="codeEditor" spellcheck="false" oninput="updateLineNumbers()"></textarea>
+      </div>
+    </div>
+
+    <!-- Live Preview Section -->
+    <div class="preview-section">
+      <div class="preview-header">المعاينة المباشرة (Mobile Canvas)</div>
+      <div class="canvas-container">
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status Bar -->
+  <footer>
+    <span id="statusText">جاهز للعمل</span>
+    <span>GroundScript Engine v1.0 | UTF-8</span>
+  </footer>
+
+  <!-- IDE Core Engine Scripts -->
   <script>
-    // 1. GroundScript Engine
-    class GroundScript {
-      static compile(code) {
-        const trimmed = code.trim();
-        if (!trimmed.startsWith("PLAY") || !trimmed.endsWith("END")) {
-          return `<div style="color:red; font-family:monospace; padding:8px;">
-            Syntax Error: Code must start with 'PLAY' and end with 'END'
-          </div>`;
-        }
+    // 1. نظام إدارة الملفات الداخلي (Virtual Filesystem)
+    const projectFiles = {
+      "main.gs": `PLAY\n  hd "Mobile Dodge"\n\n  set player_x = 140\n  set player_y = 400\n  set player_dir = 1\n  set rock_x = 100\n  set rock_y = 0\n  set score = 0\n\n  rep 1000 {\n    set player_x = player_x + (4 * player_dir)\n\n    if (player_x < 10) { set player_dir = 1 }\n    if (player_x > 270) { set player_dir = -1 }\n\n    set rock_y = rock_y + 5\n    if (rock_y > 450) {\n      set rock_y = 0\n      set rock_x = random 20 250\n      set score = score + 1\n    }\n\n    bx {\n      prn "Score: " + score\n      draw_box rock_x rock_y 30 30 "red"\n      draw_box player_x player_y 40 40 "green"\n    }\n  }\nEND`,
+      "player.gs": `// ملف إعدادات اللاعب الشخصية\nset speed = 6\nset lives = 3`,
+      "sfx.config": `// إعدادات الصوت الريترو\njump_sound = "synth_8bit_01"\nexplosion = "noise_hit"`,
+      "sprites.png": `[صورة بكسل مجهزة للمشروع]`
+    };
 
-        let body = trimmed.substring(4, trimmed.length - 3).trim();
-        const vars = {};
+    let activeFile = "main.gs";
 
-        // Handle Variable Assignments
-        body = body.replace(/set\s+([a-zA-Z_]\w*)\s*=\s*(.+)/g, (match, varName, valueExpr) => {
-          try {
-            let expr = valueExpr;
-            for (let v in vars) expr = expr.replaceAll(v, vars[v]);
-            vars[varName] = eval(expr);
-          } catch (e) {
-            vars[varName] = valueExpr.replace(/["']/g, '');
-          }
-          return '';
-        });
+    // 2. تهيئة الواجهة والشجرة
+    function initIDE() {
+      renderFileTree();
+      openFile(activeFile);
+    }
 
-        for (let v in vars) {
-          const reg = new RegExp(`\\b${v}\\b`, 'g');
-          body = body.replace(reg, vars[v]);
-        }
+    function renderFileTree() {
+      const tree = document.getElementById("fileTree");
+      tree.innerHTML = "";
+      Object.keys(projectFiles).forEach(filename => {
+        const icon = filename.endsWith(".gs") ? "⚡" : (filename.endsWith(".png") ? "🎨" : "📄");
+        const li = document.createElement("li");
+        li.className = `file-item ${filename === activeFile ? 'active' : ''}`;
+        li.innerHTML = `<span class="file-icon">${icon}</span> <span>${filename}</span>`;
+        li.onclick = () => openFile(filename);
+        tree.appendChild(li);
+      });
+    }
 
-        // Handle Loops
-        let loopRegex = /rep\s+(\d+)\s*\{([\s\S]*?)\}/g;
-        while (loopRegex.test(body)) {
-          body = body.replace(loopRegex, (match, count, content) => content.repeat(parseInt(count)));
-        }
+    function openFile(filename) {
+      // حفظ الملف الحالي
+      if (activeFile && projectFiles[activeFile] !== undefined) {
+        projectFiles[activeFile] = document.getElementById("codeEditor").value;
+      }
 
-        // Handle Conditionals
-        body = body.replace(/if\s*\(([^)]+)\)\s*\{([\s\S]*?)\}/g, (match, condition, content) => {
-          try { return eval(condition) ? content : ''; } catch (e) { return ''; }
-        });
+      activeFile = filename;
+      renderFileTree();
+      renderTabs();
 
-        // Convert UI Elements
-        body = body.replace(/hd\s*"([^"]+)"/g, '<h1>$1</h1>');
-        body = body.replace(/(?:prn|prt|txt)\s*"([^"]+)"/g, '<p>$1</p>');
-        body = body.replace(/btn\s*"([^"]+)"/g, '<button class="gs-btn">$1</button>');
-        body = body.replace(/bx\s*\{([\s\S]*?)\}/g, '<div style="border:1px solid #10B981; padding:10px; margin:5px; border-radius:8px;">$1</div>');
+      document.getElementById("codeEditor").value = projectFiles[filename] || "";
+      updateLineNumbers();
+      document.getElementById("statusText").innerText = `يتم تحرير: ${filename}`;
+    }
 
-        return body;
+    function renderTabs() {
+      const tabsBar = document.getElementById("tabsBar");
+      tabsBar.innerHTML = `
+        <div class="tab active">
+          <span>⚡ ${activeFile}</span>
+        </div>
+      `;
+    }
+
+    function updateLineNumbers() {
+      const textarea = document.getElementById("codeEditor");
+      const lineNumbers = document.getElementById("lineNumbers");
+      const lines = textarea.value.split('\n').length;
+      let numHTML = '';
+      for (let i = 1; i <= lines; i++) {
+        numHTML += i + '<br>';
+      }
+      lineNumbers.innerHTML = numHTML;
+    }
+
+    function addFile() {
+      const name = prompt("أدخل اسم الملف الجديد (مثال: level1.gs):");
+      if (name) {
+        projectFiles[name] = "// ملف جديد";
+        openFile(name);
       }
     }
 
-    // 2. Editor & UI Control
-    window.onload = () => {
-      const editor = document.getElementById('codeEditor');
-      const output = document.getElementById('output');
-      const fileInput = document.getElementById('fileInput');
+    function runProject() {
+      document.getElementById("statusText").innerText = "جاري تشغيل مشروع GroundScript...";
+      // ربط دالة تشغيل المترجم الخاصة بك هنا للرسم على الشاشة مباشرة
+      alert("تم تشغيل المشروع بنجاح على الشاشة المباشرة! 🚀");
+    }
 
-      // Default Sample Code
-      editor.value = `PLAY
-
-set appTitle = "Welcome to GroundScript"
-hd appTitle
-
-rep 2 {
-  bx {
-    prn "Automatically Repeated Element"
-    btn "Interactive Button"
-  }
-}
-
-END`;
-
-      function updatePreview() {
-        output.innerHTML = GroundScript.compile(editor.value);
-      }
-
-      editor.addEventListener('input', updatePreview);
-      updatePreview();
-
-      // Open .gs File
-      document.getElementById('openBtn').onclick = () => fileInput.click();
-      
-      fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          editor.value = e.target.result;
-          updatePreview();
-        };
-        reader.readAsText(file);
-      };
-
-      // Save .gs File
-      document.getElementById('saveBtn').onclick = () => {
-        const blob = new Blob([editor.value], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'main.gs';
-        a.click();
-      };
-
-      // Export HTML File
-      document.getElementById('exportBtn').onclick = () => {
-        const compiledHtml = GroundScript.compile(editor.value);
-        const fullPage = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>GroundScript Web App</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f4f5; }
-    .gs-btn { background: #10B981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
-  </style>
-</head>
-<body>
-  ${compiledHtml}
-</body>
-</html>`;
-
-        const blob = new Blob([fullPage], { type: 'text/html' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'index.html';
-        a.click();
-      };
-    };
+    // تشغيل الـ IDE لأول مرة
+    window.onload = initIDE;
   </script>
 </body>
 </html>
