@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GroundScript Studio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 20px;
+    }
+
+    /* Top Bar Header */
+    header {
+      background-color: #161b22;
+      padding: 12px;
+      border-bottom: 2px solid #10b981;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .brand h2 { color: #10b981; font-size: 18px; }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #21262d;
+      color: #58a6ff;
+      border: 1px solid #30363d;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn:active { opacity: 0.7; }
+    .btn.primary { background: #10b981; color: #0d1117; border: none; }
+
+    /* Code Editor Area */
+    .editor-container {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .label {
+      font-size: 13px;
+      color: #8b949e;
+      font-weight: bold;
+    }
+    
+    #codeEditor {
+      width: 100%;
+      height: 350px;
+      background-color: #010409;
+      color: #34d399;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Fira Code', Consolas, Monaco, monospace;
+      font-size: 15px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    /* Live Preview Area */
+    .preview-container {
+      padding: 12px;
+    }
+    #output {
+      background-color: #ffffff;
+      color: #000000;
+      padding: 15px;
+      border-radius: 8px;
+      min-height: 120px;
+    }
+    
+    .gs-btn {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h2>GroundScript Studio (.gs)</h2>
+    </div>
+    <div class="actions">
+      <button id="openBtn" class="btn">📁 Open .gs</button>
+      <button id="saveBtn" class="btn">💾 Save .gs</button>
+      <button id="exportBtn" class="btn primary">⚡ Export HTML</button>
+      <input type="file" id="fileInput" accept=".gs" style="display:none;">
+    </div>
+  </header>
+
+  <main class="editor-container">
+    <div class="label">Code Editor (main.gs):</div>
+    <textarea id="codeEditor" spellcheck="false"></textarea>
+  </main>
+
+  <section class="preview-container">
+    <div class="label" style="margin-bottom: 6px;">Live Preview:</div>
+    <div id="output"></div>
+  </section>
+
+  <script>
+    // 1. GroundScript Engine
+    class GroundScript {
+      static compile(code) {
+        const trimmed = code.trim();
+        if (!trimmed.startsWith("PLAY") || !trimmed.endsWith("END")) {
+          return `<div style="color:red; font-family:monospace; padding:8px;">
+            Syntax Error: Code must start with 'PLAY' and end with 'END'
+          </div>`;
+        }
+
+        let body = trimmed.substring(4, trimmed.length - 3).trim();
+        const vars = {};
+
+        // Handle Variable Assignments
+        body = body.replace(/set\s+([a-zA-Z_]\w*)\s*=\s*(.+)/g, (match, varName, valueExpr) => {
+          try {
+            let expr = valueExpr;
+            for (let v in vars) expr = expr.replaceAll(v, vars[v]);
+            vars[varName] = eval(expr);
+          } catch (e) {
+            vars[varName] = valueExpr.replace(/["']/g, '');
+          }
+          return '';
+        });
+
+        for (let v in vars) {
+          const reg = new RegExp(`\\b${v}\\b`, 'g');
+          body = body.replace(reg, vars[v]);
+        }
+
+        // Handle Loops
+        let loopRegex = /rep\s+(\d+)\s*\{([\s\S]*?)\}/g;
+        while (loopRegex.test(body)) {
+          body = body.replace(loopRegex, (match, count, content) => content.repeat(parseInt(count)));
+        }
+
+        // Handle Conditionals
+        body = body.replace(/if\s*\(([^)]+)\)\s*\{([\s\S]*?)\}/g, (match, condition, content) => {
+          try { return eval(condition) ? content : ''; } catch (e) { return ''; }
+        });
+
+        // Convert UI Elements
+        body = body.replace(/hd\s*"([^"]+)"/g, '<h1>$1</h1>');
+        body = body.replace(/(?:prn|prt|txt)\s*"([^"]+)"/g, '<p>$1</p>');
+        body = body.replace(/btn\s*"([^"]+)"/g, '<button class="gs-btn">$1</button>');
+        body = body.replace(/bx\s*\{([\s\S]*?)\}/g, '<div style="border:1px solid #10B981; padding:10px; margin:5px; border-radius:8px;">$1</div>');
+
+        return body;
+      }
+    }
+
+    // 2. Editor & UI Control
+    window.onload = () => {
+      const editor = document.getElementById('codeEditor');
+      const output = document.getElementById('output');
+      const fileInput = document.getElementById('fileInput');
+
+      // Default Sample Code
+      editor.value = `PLAY
+
+set appTitle = "Welcome to GroundScript"
+hd appTitle
+
+rep 2 {
+  bx {
+    prn "Automatically Repeated Element"
+    btn "Interactive Button"
+  }
+}
+
+END`;
+
+      function updatePreview() {
+        output.innerHTML = GroundScript.compile(editor.value);
+      }
+
+      editor.addEventListener('input', updatePreview);
+      updatePreview();
+
+      // Open .gs File
+      document.getElementById('openBtn').onclick = () => fileInput.click();
+      
+      fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          editor.value = e.target.result;
+          updatePreview();
+        };
+        reader.readAsText(file);
+      };
+
+      // Save .gs File
+      document.getElementById('saveBtn').onclick = () => {
+        const blob = new Blob([editor.value], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'main.gs';
+        a.click();
+      };
+
+      // Export HTML File
+      document.getElementById('exportBtn').onclick = () => {
+        const compiledHtml = GroundScript.compile(editor.value);
+        const fullPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GroundScript Web App</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f5; }
+    .gs-btn { background: #10B981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  ${compiledHtml}
+</body>
+</html>`;
+
+        const blob = new Blob([fullPage], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'index.html';
+        a.click();
+      };
+    };
+  </script>
+</body>
+</html>
